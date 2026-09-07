@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Pro - Full Featured</title>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #000; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; transition: background 0.3s, color 0.3s; }
+        body.light-theme { background-color: #fff; color: #000; }
+        body.light-theme .screen { background-color: #fff; color: #000; }
+        body.light-theme .top-bar, body.light-theme .bottom-nav, body.light-theme .stories-container, body.light-theme .post-card, body.light-theme .settings-item, body.light-theme .list-search-input, body.light-theme .sub-settings-screen { background-color: #fff; border-color: #dbdbdb; color: #000; }
+        body.light-theme .story-name, body.light-theme .post-footer span { color: #262626; }
+
+        .screen { display: none; flex: 1; flex-direction: column; overflow-y: auto; background-color: #000; height: calc(100vh - 55px); }
+        .screen.active { display: flex; }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #1a1a1a; background: #000; font-weight: 600; font-size: 16px; position: sticky; top: 0; z-index: 10; }
+        .top-bar-back { cursor: pointer; font-size: 20px; color: inherit; }
+
+        .bottom-nav { display: flex; justify-content: space-around; align-items: center; background: #000; border-top: 1px solid #1a1a1a; padding: 10px 0; height: 55px; z-index: 10; }
+        .nav-icon { font-size: 22px; cursor: pointer; color: inherit; background: none; border: none; }
+
+        /* Stories Tray */
+        .stories-container { display: flex; gap: 12px; padding: 10px 15px; overflow-x: auto; border-bottom: 1px solid #1a1a1a; background: #000; }
+        .story-item { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex-shrink: 0; }
+        .story-ring { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743); padding: 2px; display: flex; align-items: center; justify-content: center; }
+        .story-avatar { width: 100%; height: 100%; border-radius: 50%; background: #222; display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; }
+        .story-name { font-size: 11px; color: #fff; max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* Feed Post Card */
+        .post-card { background: #000; border-bottom: 1px solid #1a1a1a; margin-bottom: 10px; }
+        .post-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; }
+        .post-user { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+        .post-media { width: 100%; min-height: 250px; max-height: 400px; background: #121212; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #8e8e8e; }
+        .post-actions { display: flex; justify-content: space-between; padding: 10px 15px; font-size: 22px; }
+        .post-actions-left { display: flex; gap: 15px; }
+        .post-footer { padding: 0 15px 12px 15px; font-size: 14px; }
+
+        /* Profile Tabs */
+        .profile-tabs { display: flex; border-top: 1px solid #1a1a1a; border-bottom: 1px solid #1a1a1a; }
+        .p-tab { flex: 1; text-align: center; padding: 12px; font-size: 18px; cursor: pointer; border-bottom: 2px solid transparent; }
+        .p-tab.active { border-bottom-color: #0095f6; }
+
+        .settings-header { font-size: 11px; color: #a8a8a8; padding: 16px 15px 6px 15px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .settings-item { display: flex; justify-content: space-between; align-items: center; padding: 13px 15px; background: inherit; cursor: pointer; font-size: 14px; border-bottom: 1px solid #0a0a0a; }
+        .settings-item-left { display: flex; align-items: center; gap: 12px; }
+        .settings-icon { font-size: 18px; width: 24px; text-align: center; }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #262626; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #0095f6; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .real-form { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .real-form label { font-size: 12px; color: #a8a8a8; display: block; margin-bottom: 5px; }
+        .real-form input { width: 100%; padding: 12px; background: #121212; border: 1px solid #333; color: inherit; border-radius: 8px; outline: none; font-size: 14px; }
+        .action-btn { width: 100%; padding: 12px; background: #0095f6; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; }
+
+        .user-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid #111; cursor: pointer; }
+        .avatar-circle { width: 38px; height: 38px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; overflow: hidden; color: #fff; flex-shrink: 0; }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+        .list-search-box { padding: 10px 15px; border-bottom: 1px solid #1a1a1a; }
+        .list-search-input { width: 100%; padding: 10px 12px; background: #121212; border: 1px solid #333; color: inherit; border-radius: 8px; outline: none; font-size: 14px; }
+        .follow-user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; }
+        .follow-user-info { display: flex; gap: 12px; align-items: center; cursor: pointer; flex: 1; }
+        .follow-btn { background: #0095f6; color: #fff; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+        .message-btn { background: #262626; color: #fff; border: none; padding: 7px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+
+        /* Floating Flowers Effect */
+        #flowerContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 999; display: none; }
+        .insta-flower {
+            position: absolute;
+            font-size: 26px;
+            user-select: none;
+            will-change: transform, opacity;
+            animation: instaFloat 3.5s ease-in-out forwards;
+        }
+        @keyframes instaFloat {
+            0% { transform: translateY(90vh) translateX(0px) rotate(0deg) scale(0.5); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-10vh) translateX(40px) rotate(360deg) scale(1.2); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="flowerContainer"></div>
+
+    <!-- 1. HOME / FEED SCREEN -->
+    <div id="homeFeedScreen" class="screen active">
+        <div class="top-bar">
+            <span style="font-weight: 700; font-size: 20px; font-family: cursive;">Instagram</span>
+            <div style="font-size: 20px; display: flex; gap: 18px; align-items: center;">
+                <span onclick="switchScreen('createContentScreen')" style="cursor:pointer;">➕</span>
+                <span onclick="switchScreen('chatListScreen')" style="cursor:pointer;">💬</span>
+            </div>
+        </div>
+
+        <div class="stories-container">
+            <div class="story-item" onclick="switchScreen('createContentScreen')">
+                <div class="story-ring" style="background:#444;"><div class="story-avatar">➕</div></div>
+                <span class="story-name">Your story</span>
+            </div>
+            <div class="story-item" onclick="openChatRoom('Ali Khan')">
+                <div class="story-ring"><div class="story-avatar">👑</div></div>
+                <span class="story-name">ali_khan</span>
+            </div>
+            <div class="story-item" onclick="openChatRoom('Sarah')">
+                <div class="story-ring"><div class="story-avatar">🌸</div></div>
+                <span class="story-name">sarah_99</span>
+            </div>
+        </div>
+
+        <div id="feedStreamContainer">
+            <div class="post-card">
+                <div class="post-header">
+                    <div class="post-user">
+                        <div class="avatar-circle" style="width:30px;height:30px;">👑</div>
+                        <span>ali_khan</span> 
+                        <span style="font-size:11px; color:#0095f6; cursor:pointer;" onclick="openUserProfile('zehan_anes', 'umer mir', 'Cloud Connected App Active ✨', '👤', '12', '192', '193')">@zehan_anes</span>
+                    </div>
+                    <span>⋮</span>
+                </div>
+                <div class="post-media"><span>📷 Scenic View Post</span></div>
+                <div class="post-actions">
+                    <div class="post-actions-left">
+                        <span id="likeBtn" onclick="handlePostLike()" style="cursor:pointer; color: #fff;">❤️</span>
+                        <span onclick="switchScreen('commentsScreen')" style="cursor:pointer;">💬</span>
+                        <span onclick="alert('Post Shared!')" style="cursor:pointer;">✈️</span>
+                    </div>
+                    <span onclick="alert('Post Saved!')" style="cursor:pointer;">🔖</span>
+                </div>
+                <div class="post-footer">
+                    <strong id="likeCountText">1,420 likes</strong><br>
+                    <span><strong>ali_khan</strong> Exploring new places with friends! 🌍</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. COMMENTS SCREEN -->
+    <div id="commentsScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('homeFeedScreen')">←</span>
+            <span>Comments</span>
+            <span></span>
+        </div>
+        <div style="flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; gap: 10px; font-size: 13px;">
+                <div class="avatar-circle" style="width:30px;height:30px;">S</div>
+                <div><strong>sarah_99</strong> Awesome click! 🔥</div>
+            </div>
+        </div>
+        <div style="padding: 10px; border-top: 1px solid #1a1a1a; display: flex; gap: 10px;">
+            <input type="text" placeholder="Add a comment..." style="flex:1; padding:10px; background:inherit; border:1px solid #333; color:inherit; border-radius:20px; outline:none;">
+            <button class="action-btn" style="width:auto; padding:0 15px; border-radius:20px;" onclick="alert('Comment posted!')">Post</button>
+        </div>
+    </div>
+
+    <!-- 3. REELS SCREEN -->
+    <div id="reelsScreen" class="screen">
+        <div class="top-bar">
+            <span>Reels</span>
+            <span onclick="switchScreen('createContentScreen')" style="cursor:pointer;">📷</span>
+        </div>
+        <div style="flex: 1; background: #111; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; text-align: center;">
+            <div style="font-size: 13px; color: #a8a8a8;">Swipe up/down for entertainment</div>
+            <div style="font-size: 55px;">🎞️</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div style="text-align: left; color: #fff;">
+                    <strong>@zehan_anes</strong><br>
+                    <span style="font-size: 13px; color: #ccc;">Coding vibe ✨</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px; font-size: 24px;">
+                    <span onclick="handlePostLike()" style="cursor:pointer;">❤️</span>
+                    <span onclick="alert('Comments!')" style="cursor:pointer;">💬</span>
+                    <span onclick="alert('Shared!')" style="cursor:pointer;">✈️</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. CREATE CONTENT -->
+    <div id="createContentScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('homeFeedScreen')">✕</span>
+            <span>New Post / Story</span>
+            <span style="color:#0095f6; font-weight:bold; cursor:pointer;" onclick="alert('Shared successfully!')">Share</span>
+        </div>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+            <div style="text-align: center; padding: 30px; border: 2px dashed #333; border-radius: 12px; cursor: pointer;" onclick="document.getElementById('galleryInput').click()">
+                <div style="font-size: 35px; margin-bottom: 8px;">📁</div>
+                <strong style="font-size: 14px;">Open Phone Gallery</strong>
+                <input type="file" id="galleryInput" accept="image/*,video/*" style="display:none;">
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. PROFILE SCREEN -->
+    <div id="profileScreen" class="screen">
+        <div class="top-bar">
+            <span onclick="switchScreen('switchAccountScreen')" style="font-weight: 700; font-size: 18px; cursor:pointer;" id="topUsernameHeader">zehan_anes ∨</span>
+            <div style="font-size: 20px; display: flex; gap: 18px; align-items: center;">
+                <span onclick="switchScreen('chatListScreen')" style="cursor:pointer;">💬</span>
+                <span onclick="switchScreen('settingsScreen')" style="cursor:pointer;">☰</span>
+            </div>
+        </div>
+        <div style="padding: 15px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743); padding: 2px; display: flex; align-items: center; justify-content: center;">
+                    <div class="avatar-circle" style="width: 100%; height: 100%;" id="profilePicPreview">👤</div>
+                </div>
+                <div style="display: flex; gap: 20px; text-align: center; flex: 1; justify-content: space-around; margin-left: 15px;">
+                    <div><strong style="font-size: 16px;">12</strong><br><span style="font-size:12px; color:#a8a8a8;">posts</span></div>
+                    <div onclick="openFollowList('followers')" style="cursor: pointer;"><strong style="font-size: 16px;">192</strong><br><span style="font-size:12px; color:#a8a8a8;">followers</span></div>
+                    <div onclick="openFollowList('following')" style="cursor: pointer;"><strong style="font-size: 16px;">193</strong><br><span style="font-size:12px; color:#a8a8a8;">following</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong style="font-size: 14px;" id="profileNameDisplay">umer mir</strong><br>
+                <span style="font-size: 14px;" id="profileBioDisplay">Cloud Connected App Active ✨</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button style="flex: 1; background: #262626; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;" onclick="switchScreen('editProfileScreen')">Edit profile</button>
+                <button style="flex: 1; background: #262626; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;" onclick="alert('Profile Link Copied!')">Share profile</button>
+            </div>
+        </div>
+
+        <div class="profile-tabs">
+            <div class="p-tab active" onclick="switchTab('posts', this)">📸</div>
+            <div class="p-tab" onclick="switchTab('reels', this)">🎞️</div>
+            <div class="p-tab" onclick="switchTab('tagged', this)">🏷️</div>
+        </div>
+        <div id="tabContentArea" style="padding: 20px; text-align: center; color: #8e8e8e; font-size: 14px;">
+            📸 Your Media Posts Grid
+        </div>
+    </div>
+
+    <!-- 6. DYNAMIC VIEW USER PROFILE SCREEN (Jab kisi follower/following pe tap karein) -->
+    <div id="dynamicProfileScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="goBackFromDynamicProfile()">←</span>
+            <span id="dpUsernameHeader">username</span>
+            <span></span>
+        </div>
+        <div style="padding: 15px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743); padding: 2px; display: flex; align-items: center; justify-content: center;">
+                    <div class="avatar-circle" style="width: 100%; height: 100%;" id="dpPic">👤</div>
+                </div>
+                <div style="display: flex; gap: 20px; text-align: center; flex: 1; justify-content: space-around; margin-left: 15px;">
+                    <div><strong style="font-size: 16px;" id="dpPostsCount">45</strong><br><span style="font-size:12px; color:#a8a8a8;">posts</span></div>
+                    <div style="cursor: pointer;" onclick="openFollowList('followers')"><strong style="font-size: 16px;" id="dpFollowersCount">1.2K</strong><br><span style="font-size:12px; color:#a8a8a8;">followers</span></div>
+                    <div style="cursor: pointer;" onclick="openFollowList('following')"><strong style="font-size: 16px;" id="dpFollowingCount">340</strong><br><span style="font-size:12px; color:#a8a8a8;">following</span></div>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <strong style="font-size: 14px;" id="dpNameDisplay">Name</strong><br>
+                <span style="font-size: 14px;" id="dpBioDisplay">Bio info goes here...</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button style="flex: 1; background: #0095f6; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;" id="dpFollowBtn" onclick="alert('Follow status updated!')">Follow</button>
+                <button style="flex: 1; background: #262626; color: #fff; border: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;" onclick="openChatRoomFromProfile()">Message</button>
+            </div>
+        </div>
+        <div class="profile-tabs">
+            <div class="p-tab active">📸</div>
+        </div>
+        <div style="padding: 20px; text-align: center; color: #8e8e8e; font-size: 14px;">
+            User Posts Grid Content
+        </div>
+    </div>
+
+    <!-- 7. FOLLOWERS / FOLLOWING LIST SCREEN -->
+    <div id="followListScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('profileScreen')">←</span>
+            <span id="followListTitle">Connections</span>
+            <span></span>
+        </div>
+        <div class="list-search-box">
+            <input type="text" class="list-search-input" placeholder="Search followers/following..." onkeyup="filterFollowList(this.value)">
+        </div>
+        <div id="followListContainer" style="flex: 1; overflow-y: auto;"></div>
+    </div>
+
+    <!-- 8. SWITCH ACCOUNT -->
+    <div id="switchAccountScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('profileScreen')">✕</span>
+            <span>Switch account</span>
+            <span></span>
+        </div>
+        <div style="padding: 15px;">
+            <div class="user-row" style="background: #121212; border-radius: 8px; margin-bottom: 10px;">
+                <div style="display: flex; gap: 10px; align-items: center;"><div class="avatar-circle">👤</div><strong>zehan_anes (Active)</strong></div>
+                <span style="color: #0095f6;">✓</span>
+            </div>
+            <div class="user-row" style="background: #121212; border-radius: 8px;" onclick="alert('Switched account to @umer_official')">
+                <div style="display: flex; gap: 10px; align-items: center;"><div class="avatar-circle" style="background:#555;">U</div><strong>umer_official</strong></div>
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. EDIT PROFILE -->
+    <div id="editProfileScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('profileScreen')">✕</span>
+            <span>Edit profile</span>
+            <span style="color: #0095f6; cursor: pointer; font-weight: bold;" onclick="saveProfileChanges()">✓</span>
+        </div>
+        <div class="real-form">
+            <div><label>Name</label><input type="text" id="inputName" value="umer mir"></div>
+            <div><label>Username</label><input type="text" id="inputUsername" value="zehan_anes"></div>
+            <div><label>Bio</label><input type="text" id="inputBio" value="Cloud Connected App Active ✨"></div>
+        </div>
+    </div>
+
+    <!-- 10. REAL INSTAGRAM SETTINGS & ACTIVITY SCREEN (Full Options) -->
+    <div id="settingsScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('profileScreen')">←</span>
+            <span>Settings and activity</span>
+            <span></span>
+        </div>
+        
+        <div class="settings-header">Your account</div>
+        <div class="settings-item" onclick="openSubSettings('Account Center', 'Manage your connected experiences and account settings across Meta technologies.')">
+            <div class="settings-item-left"><span class="settings-icon">💠</span>Account Center</div><span>›</span>
+        </div>
+
+        <div class="settings-header">How you use Instagram</div>
+        <div class="settings-item" onclick="openSubSettings('Notifications', 'Manage push notifications for posts, stories, messages, and calls.')">
+            <div class="settings-item-left"><span class="settings-icon">🔔</span>Notifications</div><span>›</span>
+        </div>
+        <div class="settings-item" onclick="openSubSettings('Time Spent', 'See your daily average time, set reminders to take breaks, and manage your schedule.')">
+            <div class="settings-item-left"><span class="settings-icon">⏳</span>Time spent</div><span>›</span>
+        </div>
+
+        <div class="settings-header">Who can see your content</div>
+        <div class="settings-item" onclick="openSubSettings('Account Privacy', 'Switch your account to private or manage restricted accounts and blocked users.')">
+            <div class="settings-item-left"><span class="settings-icon">🔒</span>Account privacy</div><span>›</span>
+        </div>
+        <div class="settings-item" onclick="openSubSettings('Close Friends', 'Add or remove people from your close friends list for exclusive stories.')">
+            <div class="settings-item-left"><span class="settings-icon">⭐</span>Close Friends</div><span>›</span>
+        </div>
+        <div class="settings-item" onclick="openSubSettings('Blocked Accounts', 'Review accounts you have blocked from viewing your content or messaging you.')">
+            <div class="settings-item-left"><span class="settings-icon">🚫</span>Blocked</div><span>›</span>
+        </div>
+
+        <div class="settings-header">Custom Theme & Effects</div>
+        <div class="settings-item">
+            <div class="settings-item-left"><span class="settings-icon">🌸</span>Show Flowers on Like</div>
+            <label class="switch"><input type="checkbox" id="flowerEffectToggle" checked><span class="slider"></span></label>
+        </div>
+        <div class="settings-item">
+            <div class="settings-item-left"><span class="settings-icon">☀️</span>Light Mode Theme</div>
+            <label class="switch"><input type="checkbox" id="themeToggle" onchange="toggleTheme(this)"><span class="slider"></span></label>
+        </div>
+
+        <div class="settings-header">Login & Security</div>
+        <div class="settings-item" style="color: #ed4956;" onclick="alert('Logged out securely from all devices!')">
+            <div class="settings-item-left"><span class="settings-icon">🚪</span>Log out</div><span></span>
+        </div>
+    </div>
+
+    <!-- SUB-SETTINGS POPUP SCREEN FOR DETAILED MENUS -->
+    <div id="subSettingsScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('settingsScreen')">←</span>
+            <span id="subSettingsTitle">Settings</span>
+            <span></span>
+        </div>
+        <div style="padding: 20px;" id="subSettingsContent">
+            <!-- Dynamic info content -->
+        </div>
+    </div>
+
+    <!-- 11. CHAT LIST SCREEN -->
+    <div id="chatListScreen" class="screen">
+        <div class="top-bar">
+            <span class="top-bar-back" onclick="switchScreen('homeFeedScreen')">←</span>
+            <span>Messages (Direct)</span>
+            <span style="cursor:pointer;" onclick="alert('New message composer')">✏️</span>
+        </div>
+        <div class="user-row" onclick="openChatRoom('Ali Khan')">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="avatar-circle">👑</div>
+                <div><strong>Ali Khan</strong><br><span style="font-size: 12px; color: #8e8e8e;">Active now</span></div>
+            </div>
+            <span>💬</span>
+        </div>
+    </div>
+
+    <!-- 12. ACTIVE CHAT ROOM -->
+    <div id="chatRoomScreen" class="screen">
+        <div class="top-bar">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="top-bar-back" onclick="switchScreen('chatListScreen')">←</span>
+                <span id="activeChatUserTitle">Chat</span>
+            </div>
+            <div style="display: flex; gap: 20px; font-size: 18px;">
+                <span onclick="alert('Audio Call 📞')" style="cursor:pointer;">📞</span>
+                <span onclick="alert('Video Call 📹')" style="cursor:pointer;">📹</span>
+            </div>
+        </div>
+        <div id="messageDisplayArea" style="flex: 1; padding: 15px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto;">
+            <div style="background: #262626; color: #fff; padding: 10px; border-radius: 8px; max-width: 70%; font-size: 14px;">Salam bhai!</div>
+        </div>
+        <div style="padding: 10px 15px; border-top: 1px solid #1a1a1a; display: flex; gap: 10px; background: inherit; align-items: center;">
+            <input type="text" id="chatMessageInput" placeholder="Message..." style="flex: 1; padding: 12px 15px; background: #121212; border: 1px solid #333; color: inherit; border-radius: 25px; outline: none; font-size: 14px;" onkeypress="if(event.key === 'Enter') sendMsg();">
+            <button class="action-btn" style="width: auto; padding: 10px 20px; border-radius: 20px;" onclick="sendMsg()">Send</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <div class="bottom-nav">
+        <button class="nav-icon" onclick="switchScreen('homeFeedScreen')">🏠</button>
+        <button class="nav-icon" onclick="switchScreen('reelsScreen')">🎞️</button>
+        <button class="nav-icon" onclick="switchScreen('createContentScreen')">➕</button>
+        <button class="nav-icon" onclick="switchScreen('chatListScreen')">💬</button>
+        <button class="nav-icon" onclick="switchScreen('profileScreen')">👤</button>
+    </div>
+
+    <script>
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function switchTab(tabType, el) {
+            document.querySelectorAll('.p-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            let area = document.getElementById('tabContentArea');
+            if(tabType === 'posts') area.innerHTML = "📸 Your Photos & Posts Grid";
+            if(tabType === 'reels') area.innerHTML = "🎞️ Your Video Reels";
+            if(tabType === 'tagged') area.innerHTML = "🏷️ Tagged Posts";
+        }
+
+        function saveProfileChanges() {
+            document.getElementById('profileNameDisplay').textContent = document.getElementById('inputName').value;
+            document.getElementById('topUsernameHeader').textContent = document.getElementById('inputUsername').value + " ∨";
+            document.getElementById('profileBioDisplay').textContent = document.getElementById('inputBio').value;
+            switchScreen('profileScreen');
+        }
+
+        let allUsersList = [
+            { name: 'aishaa3143', sub: 'Mir aishaa', bio: 'Living my best life ✨', avatar: '🌸', posts: '18', followers: '540', following: '210' },
+            { name: 'yawar_nabi_99', sub: 'Yawar Nabi', bio: 'Software Developer 💻', avatar: '👨‍💻', posts: '32', followers: '890', following: '430' },
+            { name: 'samalik666666', sub: '👑 • S • ⚔️ x786', bio: 'Explorer & Rider 🏍️', avatar: '⚔️', posts: '76', followers: '2.4K', following: '510' },
+            { name: 'rehan_khan_official', sub: 'Rehan khan', bio: 'Video Creator 🎥', avatar: '🎬', posts: '112', followers: '15.2K', following: '980' },
+            { name: 'i_am_wassu_mughal', sub: 'Wassu Mughal', bio: 'Fitness & Gym 💪', avatar: '🏋️', posts: '44', followers: '920', following: '310' },
+            { name: 'junaid__karnai', sub: '🥷 Ninja Vibe', bio: 'Keep it simple and silent.', avatar: '🥷', posts: '9', followers: '340', following: '180' },
+            { name: 'mr_yasir_786j', sub: 'Yasir Quresih', bio: 'Photography 📸', avatar: '📷', posts: '65', followers: '1.1K', following: '450' },
+            { name: 'travelwithkmr112', sub: 'Rayees Ahmed', bio: 'Traveler 🌍✈️', avatar: '✈️', posts: '130', followers: '5.8K', following: '620' }
+        ];
+
+        function openFollowList(type) {
+            document.getElementById('followListTitle').textContent = type.charAt(0).toUpperCase() + type.slice(1);
+            renderFollowUsers(allUsersList);
+            switchScreen('followListScreen');
+        }
+
+        function renderFollowUsers(users) {
+            let container = document.getElementById('followListContainer');
+            container.innerHTML = '';
+            
+            users.forEach(u => {
+                let row = document.createElement('div');
+                row.className = 'follow-user-item';
+                row.innerHTML = `
+                    <div class="follow-user-info" onclick="openUserProfile('${u.name}', '${u.sub}', '${u.bio}', '${u.avatar}', '${u.posts}', '${u.followers}', '${u.following}')">
+                        <div class="avatar-circle">${u.avatar}</div>
+                        <div style="margin-left: 12px;">
+                            <strong style="font-size: 14px;">${u.name}</strong><br>
+                            <span style="font-size: 12px; color: #8e8e8e;">${u.sub}</span>
+                        </div>
+                    </div>
+                    <button class="follow-btn" onclick="alert('Followed ${u.name}!')">Follow</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function filterFollowList(query) {
+            let filtered = allUsersList.filter(u => u.name.toLowerCase().includes(query.toLowerCase()) || u.sub.toLowerCase().includes(query.toLowerCase()));
+            renderFollowUsers(filtered);
+        }
+
+        function openUserProfile(username, name, bio, avatar, posts, followers, following) {
+            document.getElementById('dpUsernameHeader').textContent = username;
+            document.getElementById('dpNameDisplay').textContent = name;
+            document.getElementById('dpBioDisplay').textContent = bio;
+            document.getElementById('dpPic').textContent = avatar;
+            document.getElementById('dpPostsCount').textContent = posts;
+            document.getElementById('dpFollowersCount').textContent = followers;
+            document.getElementById('dpFollowingCount').textContent = following;
+            switchScreen('dynamicProfileScreen');
+        }
+
+        function goBackFromDynamicProfile() {
+            switchScreen('followListScreen');
+        }
+
+        function openChatRoomFromProfile() {
+            let username = document.getElementById('dpUsernameHeader').textContent;
+            openChatRoom(username);
+        }
+
+        function openSubSettings(title, desc) {
+            document.getElementById('subSettingsTitle').textContent = title;
+            document.getElementById('subSettingsContent').innerHTML = `
+                <div style="font-size: 15px; line-height: 1.6; color: #ccc;">
+                    <p style="margin-bottom: 15px;">${desc}</p>
+                    <div style="background: #121212; padding: 15px; border-radius: 8px; border: 1px solid #333;">
+                        <strong>⚙️ Configuration Status:</strong> Active & Managed via Instagram Pro System.
+                    </div>
+                </div>
+            `;
+            switchScreen('subSettingsScreen');
+        }
+
+        function openChatRoom(userName) {
+            document.getElementById('activeChatUserTitle').textContent = userName;
+            switchScreen('chatRoomScreen');
+            let area = document.getElementById('messageDisplayArea');
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function sendMsg() {
+            let input = document.getElementById('chatMessageInput');
+            let text = input.value.trim();
+            if(!text) return;
+            let area = document.getElementById('messageDisplayArea');
+            area.innerHTML += `<div style="background: #0095f6; color: #fff; padding: 10px; border-radius: 8px; max-width: 70%; align-self: flex-end; font-size: 14px;">${text}</div>`;
+            input.value = '';
+            area.scrollTop = area.scrollHeight;
+        }
+
+        let isLiked = false;
+        function handlePostLike() {
+            let btn = document.getElementById('likeBtn');
+            let countText = document.getElementById('likeCountText');
+            
+            isLiked = !isLiked;
+            if (isLiked) {
+                btn.style.color = '#ed4956'; 
+                countText.textContent = "1,421 likes";
+                let flowerToggle = document.getElementById('flowerEffectToggle');
+                if (flowerToggle && flowerToggle.checked) {
+                    triggerInstaFlowers(); 
+                }
+            } else {
+                btn.style.color = '#fff';
+                countText.textContent = "1,420 likes";
+            }
+        }
+
+        function triggerInstaFlowers() {
+            let container = document.getElementById('flowerContainer');
+            container.style.display = 'block';
+            container.innerHTML = '';
+            const symbols = ['🌸', '🌹', '🌷', '🌺', '🌻', '💐', '❤️', '💖'];
+            
+            for (let i = 0; i < 15; i++) {
+                let f = document.createElement('div');
+                f.className = 'insta-flower';
+                f.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+                f.style.left = Math.random() * 85 + 5 + 'vw';
+                let duration = Math.random() * 1.5 + 2; 
+                f.style.animationDuration = duration + 's';
+                container.appendChild(f);
+
+                setTimeout(() => {
+                    f.remove();
+                    if(container.children.length === 0) {
+                        container.style.display = 'none';
+                    }
+                }, duration * 1000);
+            }
+        }
+
+        function toggleTheme(checkbox) {
+            if (checkbox.checked) {
+                document.body.classList.add('light-theme');
+            } else {
+                document.body.classList.remove('light-theme');
+            }
+        }
+    </script>
+</body>
+</html>
